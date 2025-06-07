@@ -1,48 +1,56 @@
-
 #!/bin/bash
 
-echo "========================================"
-echo "🚀 Monster VPS Setup Script Started 🚀"
-echo "========================================"
+# Dream Hosting Auto Script - by Dream for Monster 🚀
+# Auto install CyberPanel + WordPress + SSL with Domain on Ubuntu 22.04
 
-# Step 1: Update System
-echo "🔄 Updating system packages..."
-sudo apt update -y && sudo apt upgrade -y
+clear
+echo "🌐 Dream Auto Installer for CyberPanel + WordPress"
+echo "🔒 Please wait... Installing dependencies"
 
-# Step 2: Install Apache, PHP, MySQL Server
-echo "📦 Installing Apache, PHP, and MySQL..."
-sudo apt install apache2 php php-mysql mysql-server -y
+# Step 1: System update
+sudo apt update && sudo apt upgrade -y
 
-# Step 3: Enable & Start Apache
-sudo systemctl enable apache2
-sudo systemctl start apache2
+# Step 2: Install CyberPanel
+echo "⚙️ Installing CyberPanel (this may take 10-15 minutes)..."
+cd /root
+sudo apt install -y wget
+wget -O installer.sh https://cyberpanel.net/install.sh
+chmod +x installer.sh
+yes | sudo ./installer.sh
 
-# Step 4: Enable & Start MySQL
-sudo systemctl enable mysql
-sudo systemctl start mysql
+# Step 3: Configure Firewall
+echo "🛡️ Configuring firewall..."
+sudo ufw allow 8090/tcp
+sudo ufw allow http
+sudo ufw allow https
+sudo ufw enable
 
-# Step 5: Allow Apache through UFW (firewall)
-echo "🔓 Allowing Apache on UFW firewall..."
-sudo ufw allow 'Apache Full'
-sudo ufw --force enable
+# Step 4: Ask for domain
+echo -e "\n🌍 Enter your domain (example: grabofy.in):"
+read DOMAIN
 
-# Step 6: Setup Website Page
-echo "📝 Creating basic index.html page..."
-echo "<!DOCTYPE html>
-<html>
-<head>
-  <title>Monster VPS Website</title>
-</head>
-<body>
-  <h1>🚀 Welcome to Monster VPS Hosting! 🔥</h1>
-  <p>This site is hosted on your Oracle VPS using Apache Server.</p>
-</body>
-</html>" | sudo tee /var/www/html/index.html > /dev/null
+# Step 5: Setup DNS Reminder
+echo -e "\n📌 Please make sure you've pointed A record for $DOMAIN and www.$DOMAIN to this server's IP in Cloudflare or domain panel."
+read -p "✔️ Press Enter to continue after pointing A records..."
 
-# Step 7: Show Server IP
-IP=$(curl -s ifconfig.me)
-echo "🌐 Your website is live at: http://$IP"
-echo "💡 Paste this IP in your browser to view your site."
+# Step 6: Install WordPress via CyberPanel CLI
+echo -e "\n🧱 Installing WordPress on domain $DOMAIN"
+SITE_PASS=$(openssl rand -base64 12)
+ADMIN_PASS=$(openssl rand -base64 12)
 
-echo "✅ Setup Complete! Enjoy your Monster VPS Hosting!"
+cyberpanel createWebsite --package Default --domainName "$DOMAIN" --owner admin --email admin@$DOMAIN --php 8.1 --ssl
+cyberpanel createFTP --domainName "$DOMAIN" --ftpUser "$DOMAIN" --ftpPassword "$SITE_PASS"
+cyberpanel installWordPress --domainName "$DOMAIN" --path /home/$DOMAIN/public_html --wpUser admin --wpPass "$ADMIN_PASS" --wpEmail admin@$DOMAIN
 
+# Step 7: Final Output
+echo -e "\n✅ INSTALLATION COMPLETED!"
+echo -e "🌐 Website: https://$DOMAIN"
+echo -e "🔐 WordPress Login: https://$DOMAIN/wp-admin"
+echo -e "     ➤ Username: admin"
+echo -e "     ➤ Password: $ADMIN_PASS"
+echo -e "🛠️  CyberPanel Login: https://$DOMAIN:8090"
+echo -e "     ➤ Username: admin"
+echo -e "     ➤ Password: 1234567 (default - change after login)"
+echo -e "\n📌 FTP User: $DOMAIN"
+echo -e "🔑 FTP Password: $SITE_PASS"
+echo -e "\n🚀 Dream script completed successfully for Monster 💖"
